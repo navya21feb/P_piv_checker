@@ -1,0 +1,19 @@
+{
+  "n_rows": 515,
+  "missing_before": {},
+  "imputation": {},
+  "shrinkage_means": {
+    "Review_Sentiment_Score": 0.8727895876253241,
+    "Faculty_Sentiment_Score": 0.7486637414666268,
+    "Infrastructure_Sentiment_Score": 0.7045350067133441
+  },
+  "flag_counts": {
+    "fee_unverified": 515,
+    "extreme_students_per_faculty": 20,
+    "low_nlp_confidence": 130,
+    "few_reviews": 130,
+    "course_count_outlier": 5,
+    "fee_not_btech_specific": 4,
+    "low_data_confidence": 2
+  }
+}

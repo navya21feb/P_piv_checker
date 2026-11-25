@@ -1,0 +1,222 @@
+{
+  "_meta": {
+    "title": "P-PIV configuration: single-valued fuzzy plithogenic set + MEREC weights + PIV ranking",
+    "scope": "Plithogenic PIV (P-PIV), single-valued fuzzy. NOT neutrosophic.",
+    "tags": "[S] = from an original paper; [D] = team design choice. Equation/table numbers are UNVERIFIED because no PDF was attached when this file was written.",
+    "reading_rule": "Keys starting with '_' are documentation and are ignored by the code."
+  },
+
+  "paths": {
+    "_note": "Relative paths resolve against the folder holding this file. --input on the CLI overrides input_csv.",
+    "input_csv": "01_FINAL_COLLEGE_MASTER_WITH_FEES.csv",
+    "ready_csv": "colleges_ready.csv",
+    "dummy_csv": "dummy_colleges.csv",
+    "prep_stats_json": "prep_stats.json",
+    "frozen_params_json": "frozen_params.json",
+    "frozen_weights_json": "frozen_weights.json"
+  },
+
+  "id_column": "College_ID",
+
+  "columns": {
+    "_note": "Role map used by audit_columns. Every CSV column must appear here, as a source, as a derived feature, or under one of these keys. [D]",
+    "labels": ["College_Name", "City", "State"],
+    "filters": ["Institution_Type", "Genders_Accepted", "State"],
+    "display_only": ["Truth_T", "Indeterminacy_I", "Falsity_F"],
+    "reliability_metadata": [
+      "NLP_Confidence", "Review_Count", "Source_Count", "Data_Confidence",
+      "Fee_Basis", "Fee_Verification_Status", "Fee_Source"
+    ],
+    "excluded": {
+      "Established_Year": "[D] Age is not a quality direction (older is not demonstrably better); kept out of the ranking.",
+      "Total_Faculty": "[D] Absolute size is not a quality direction; Students_Per_Faculty is the ratio actually used.",
+      "Student_Enrollment": "[D] Absolute size is not a quality direction; Students_Per_Faculty is the ratio actually used.",
+      "Engineering_Courses": "[D] Free-text list; Engineering_Course_Count already summarises it.",
+      "Positive_Review_Count": "[D] Already summarised by Review_Sentiment_Score; avoids double counting.",
+      "Negative_Review_Count": "[D] Already summarised by Review_Sentiment_Score; avoids double counting.",
+      "Neutral_Review_Count": "[D] Already summarised by Review_Sentiment_Score; avoids double counting."
+    }
+  },
+
+  "derived": [
+    {
+      "name": "Facility_Count",
+      "type": "count_delimited",
+      "from": "Facilities",
+      "delimiter": ",",
+      "_note": "[D] Number of non-empty items in the delimited Facilities text."
+    }
+  ],
+
+  "shrinkage": {
+    "_note": "[D] x__adj = conf*x + (1-conf)*mean(x over ALL rows). Original columns are kept. Sources with use_adjusted=true are read from the __adj column by P-PIV.",
+    "suffix": "__adj",
+    "columns": {
+      "Review_Sentiment_Score": "NLP_Confidence",
+      "Faculty_Sentiment_Score": "NLP_Confidence",
+      "Infrastructure_Sentiment_Score": "NLP_Confidence"
+    }
+  },
+
+  "scale_inspection": {
+    "_note": "[D] Printed at prepare() time. A value outside [expected_min, expected_max] raises ValueError.",
+    "columns": ["Review_Sentiment_Score", "Faculty_Sentiment_Score", "Infrastructure_Sentiment_Score"],
+    "expected_min": 0.0,
+    "expected_max": 1.0
+  },
+
+  "missing_values": {
+    "_note": "Imputation happens ONLY for columns listed here. Any other NaN in a source column raises an error. Rows are never dropped. Example entry: \"Public_Rating\": {\"method\": \"median\"}",
+    "strategies": {}
+  },
+
+  "quality_flags": {
+    "_note": "[D] Row-level flags joined with ';' in the 'column' below. ops: contains | startswith | lt | gt. Text ops are case-sensitive. A NaN cell never fires. Imputed cells add 'imputed:<column>' when flag_imputed is true.",
+    "column": "Data_Quality_Flags",
+    "flag_imputed": true,
+    "rules": [
+      {"name": "low_nlp_confidence",       "column": "NLP_Confidence",          "op": "lt",         "value": 0.3},
+      {"name": "few_reviews",              "column": "Review_Count",            "op": "lt",         "value": 5},
+      {"name": "extreme_students_per_faculty", "column": "Students_Per_Faculty","op": "gt",         "value": 40},
+      {"name": "course_count_outlier",     "column": "Engineering_Course_Count","op": "gt",         "value": 50},
+      {"name": "fee_not_btech_specific",   "column": "Fee_Basis",               "op": "startswith", "value": "Average across ALL"},
+      {"name": "fee_unverified",           "column": "Fee_Verification_Status", "op": "contains",   "value": "NOT verified"},
+      {"name": "low_data_confidence",      "column": "Data_Confidence",         "op": "startswith", "value": "Low"}
+    ]
+  },
+
+  "plithogenic": {
+    "_note": "(P, a, V, d, c) [S: structure per Smarandache 2018; equation numbers UNVERIFIED]. The attribute name, value set, dominant value and the mapping of data columns to values are [D]. Truth_T / Indeterminacy_I / Falsity_F are display-only and are never used here.",
+    "attribute": "College_Quality",
+    "dominant_value": "Reputation",
+    "values": [
+      {
+        "name": "Reputation",
+        "sources": [
+          {"column": "Public_Rating",          "direction": 1,  "transform": "identity", "use_adjusted": false},
+          {"column": "Review_Sentiment_Score", "direction": 1,  "transform": "identity", "use_adjusted": true}
+        ]
+      },
+      {
+        "name": "Faculty_Quality",
+        "sources": [
+          {"column": "Faculty_Sentiment_Score", "direction": 1,  "transform": "identity", "use_adjusted": true},
+          {"column": "Students_Per_Faculty",    "direction": -1, "transform": "log10",    "use_adjusted": false}
+        ]
+      },
+      {
+        "name": "Infrastructure",
+        "sources": [
+          {"column": "Infrastructure_Sentiment_Score", "direction": 1, "transform": "identity", "use_adjusted": true},
+          {"column": "Facility_Count",                 "direction": 1, "transform": "identity", "use_adjusted": false}
+        ]
+      },
+      {
+        "name": "Academic_Breadth",
+        "sources": [
+          {"column": "Engineering_Course_Count", "direction": 1, "transform": "log10", "use_adjusted": false}
+        ]
+      },
+      {
+        "name": "Affordability",
+        "_caveat": "Fee period (annual / first-year / total) is NOT stated in the source file; fees are third-party and unverified. Interpret this value with care.",
+        "sources": [
+          {"column": "Reported_Fees_INR", "direction": -1, "transform": "log10", "use_adjusted": false}
+        ]
+      }
+    ]
+  },
+
+  "appurtenance": {
+    "_note": "[D] r = clip((x'-lo)/(hi-lo),0,1) with lo/hi the percentiles of the transformed source on the FULL dataset, fitted once by Member 2 and saved to frozen_params.json. degree = r (direction +1) or 1-r (direction -1).",
+    "lower_percentile": 5,
+    "upper_percentile": 95
+  },
+
+  "contradiction": {
+    "_note": "[S: axioms c(v,v)=0, symmetric, values in [0,1]] [D: estimation method]. For v != dominant, c = (1-rho)/2 where rho = Spearman between per-alternative mean source-degree of the dominant value and of v, on the full data. NaN rho must raise. Fitted once, frozen, user-overridable at runtime.",
+    "method": "spearman_on_mean_degrees",
+    "expert_matrix": null,
+    "allow_runtime_override": true
+  },
+
+  "aggregation": {
+    "_note": "[S: two-assessment intersection/union formulas; equation numbers UNVERIFIED] [D: treating the two data sources of a value as the paper's two experts; choice of operator]. One source: degree unchanged. More than max_sources_per_value: rejected unless allow_nary_extension is true AND nary_label is '[D]'.",
+    "operator": "intersection",
+    "t_norm": "product",
+    "t_conorm": "probabilistic_sum",
+    "max_sources_per_value": 2,
+    "allow_nary_extension": false,
+    "nary_label": null
+  },
+
+  "floor": {
+    "_note": "[D] M_ij = max(a_ij, epsilon). Needed because MEREC requires x > 0. Unfloored degrees are kept for display.",
+    "epsilon": 0.01
+  },
+
+  "weights": {
+    "_note": "[S: MEREC, equation numbers UNVERIFIED]. m = number of criteria. Weights are recomputed on the filtered subset by default; appurtenance anchors and contradiction stay frozen.",
+    "method": "merec",
+    "recompute_on_filter": true
+  },
+
+  "piv": {
+    "_note": "[S: PIV] 'vector' normalisation is the paper default; 'none' is a [D] sensitivity option. tie_decimals [D]: scores are rounded to this many decimals before ranking so that floating-point noise (~1e-16) cannot split mathematically equal scores.",
+    "normalization": "vector",
+    "tie_decimals": 12
+  },
+
+  "baseline": {
+    "_note": "[D] Classical baseline: every source column as a separate criterion on RAW values (no __adj, no plithogenic grouping), with its own direction. MEREC on raw positive values, then PIV.",
+    "use_adjusted_columns": false
+  },
+
+  "validation": {
+    "_note": "[D] All settings used by validation.py. Reversal: each iteration drops drop_fraction of the rows, then compares pairwise order with the full ranking on up to max_pairs sampled pairs. Sensitivity grids: each entry is a set of dotted config paths overridden TOGETHER. The special key 'contradiction.uniform' means: method=expert with every off-diagonal c equal to that number and a zero diagonal (built from the value names). The grid ranges are [D], not published.",
+    "reversal": {"n_iterations": 20, "drop_fraction": 0.1, "max_pairs": 5000},
+    "top_k": [5, 10],
+    "sensitivity": {
+      "weight_perturbation": 0.10,
+      "param_grid": {
+        "percentiles": [
+          {"appurtenance.lower_percentile": 1,  "appurtenance.upper_percentile": 99},
+          {"appurtenance.lower_percentile": 5,  "appurtenance.upper_percentile": 95},
+          {"appurtenance.lower_percentile": 10, "appurtenance.upper_percentile": 90}
+        ],
+        "epsilon": [{"floor.epsilon": 0.001}, {"floor.epsilon": 0.01}, {"floor.epsilon": 0.05}],
+        "operator": [{"aggregation.operator": "intersection"}, {"aggregation.operator": "union"}],
+        "normalization": [{"piv.normalization": "vector"}, {"piv.normalization": "none"}],
+        "contradiction": [{"contradiction.uniform": 0.0}, {"contradiction.uniform": 0.5}, {"contradiction.uniform": 1.0}]
+      }
+    }
+  },
+
+  "api": {
+    "_note": "[D] Presentation-only settings read by main.py and the dashboard. Nothing here enters the ranking. Optional: if a key is absent the API degrades (no min-reviews filter, raw column names as labels).",
+    "title": "Plithogenic-PIV Decision Engine",
+    "label_column": "College_Name",
+    "review_count_column": "Review_Count",
+    "low_review_threshold": 5,
+    "display_only_labels": {
+      "Truth_T": "Positive share of reviews",
+      "Indeterminacy_I": "Neutral share of reviews",
+      "Falsity_F": "Negative share of reviews"
+    },
+    "display_only_group": {"type": "share_bar", "label": "Review sentiment mix (display only, not used in ranking)"},
+    "caveats": [
+      "Truth_T / Indeterminacy_I / Falsity_F are shown for context only; they do not enter either ranking.",
+      "The PIV paper (Mufazzal & Muzakkir 2018) describes rank reversal as minimised, not eliminated. The Validation tab reports measured numbers on this data only.",
+      "P-PIV and classical PIV answer differently framed questions; a rank difference is a description, not evidence that either method is correct."
+    ],
+    "max_upload_mb": 25,
+    "validation_seed": 0
+  },
+
+  "dummy": {
+    "_note": "[D] Small stratified sample of the prepared frame for tests (same schema and dtypes).",
+    "n_rows": 5,
+    "stratify_column": "Institution_Type",
+    "seed": 42
+  }
+}

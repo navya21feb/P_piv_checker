@@ -1,0 +1,136 @@
+{
+  "schema_version": 1,
+  "scope": "P-PIV single-valued fuzzy (not neutrosophic)",
+  "attribute": "College_Quality",
+  "dominant_value": "Reputation",
+  "values": [
+    "Reputation",
+    "Faculty_Quality",
+    "Infrastructure",
+    "Academic_Breadth",
+    "Affordability"
+  ],
+  "epsilon": 0.01,
+  "percentiles": {
+    "lower": 5.0,
+    "upper": 95.0
+  },
+  "sources": {
+    "Public_Rating": {
+      "value": "Reputation",
+      "column": "Public_Rating",
+      "direction": 1,
+      "transform": "identity",
+      "use_adjusted": false,
+      "lo": 6.8,
+      "hi": 8.5
+    },
+    "Review_Sentiment_Score__adj": {
+      "value": "Reputation",
+      "column": "Review_Sentiment_Score",
+      "direction": 1,
+      "transform": "identity",
+      "use_adjusted": true,
+      "lo": 0.8426865396654103,
+      "hi": 0.8994270308518661
+    },
+    "Faculty_Sentiment_Score__adj": {
+      "value": "Faculty_Quality",
+      "column": "Faculty_Sentiment_Score",
+      "direction": 1,
+      "transform": "identity",
+      "use_adjusted": true,
+      "lo": 0.69479601513366,
+      "hi": 0.7987617454416169
+    },
+    "Students_Per_Faculty": {
+      "value": "Faculty_Quality",
+      "column": "Students_Per_Faculty",
+      "direction": -1,
+      "transform": "log10",
+      "use_adjusted": false,
+      "lo": 0.8373327954370247,
+      "hi": 1.5772735092951105
+    },
+    "Infrastructure_Sentiment_Score__adj": {
+      "value": "Infrastructure",
+      "column": "Infrastructure_Sentiment_Score",
+      "direction": 1,
+      "transform": "identity",
+      "use_adjusted": true,
+      "lo": 0.6468026146294326,
+      "hi": 0.7597785559848645
+    },
+    "Facility_Count": {
+      "value": "Infrastructure",
+      "column": "Facility_Count",
+      "direction": 1,
+      "transform": "identity",
+      "use_adjusted": false,
+      "lo": 8.700000000000003,
+      "hi": 16.0
+    },
+    "Engineering_Course_Count": {
+      "value": "Academic_Breadth",
+      "column": "Engineering_Course_Count",
+      "direction": 1,
+      "transform": "log10",
+      "use_adjusted": false,
+      "lo": 0.6020599913279624,
+      "hi": 1.3222192947339193
+    },
+    "Reported_Fees_INR": {
+      "value": "Affordability",
+      "column": "Reported_Fees_INR",
+      "direction": -1,
+      "transform": "log10",
+      "use_adjusted": false,
+      "lo": 4.575778478846484,
+      "hi": 5.519125953409605
+    }
+  },
+  "contradiction": {
+    "method": "spearman_on_mean_degrees",
+    "matrix": {
+      "Reputation": {
+        "Reputation": 0.0,
+        "Faculty_Quality": 0.48367079216353254,
+        "Infrastructure": 0.37199875606712673,
+        "Academic_Breadth": 0.45113283290490436,
+        "Affordability": 0.5843475935237357
+      },
+      "Faculty_Quality": {
+        "Reputation": 0.48367079216353254,
+        "Faculty_Quality": 0.0,
+        "Infrastructure": 0.37548640234566816,
+        "Academic_Breadth": 0.5242040887567827,
+        "Affordability": 0.5154913954061995
+      },
+      "Infrastructure": {
+        "Reputation": 0.37199875606712673,
+        "Faculty_Quality": 0.37548640234566816,
+        "Infrastructure": 0.0,
+        "Academic_Breadth": 0.4473638575040172,
+        "Affordability": 0.5506003058694399
+      },
+      "Academic_Breadth": {
+        "Reputation": 0.45113283290490436,
+        "Faculty_Quality": 0.5242040887567827,
+        "Infrastructure": 0.4473638575040172,
+        "Academic_Breadth": 0.0,
+        "Affordability": 0.5729856798080912
+      },
+      "Affordability": {
+        "Reputation": 0.5843475935237357,
+        "Faculty_Quality": 0.5154913954061995,
+        "Infrastructure": 0.5506003058694399,
+        "Academic_Breadth": 0.5729856798080912,
+        "Affordability": 0.0
+      }
+    }
+  },
+  "fit_info": {
+    "n_rows": 515,
+    "id_column": "College_ID"
+  }
+}
